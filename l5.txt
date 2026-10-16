@@ -67,6 +67,7 @@ Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 2 subscriptions
 Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 0 client messages
 
 Place the instructor-provided firmware image in a working directory, for example `~/firmware-lab/firmware.bin`.
+wget -O firmware.img.gz https://downloads.openwrt.org/releases/25.12.4/targets/x86/64/openwrt-25.12.4-x86-64-generic-squashfs-rootfs.img.gz
 Identify the file type:
 file firmware.bin
 Calculate a hash for evidence/integrity:
