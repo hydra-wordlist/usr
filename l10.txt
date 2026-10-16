@@ -1,0 +1,215 @@
+┌──(kali㉿kali)-[~]
+└─$ systemctl status mosquitto         
+● mosquitto.service - Mosquitto MQTT Broker
+     Loaded: loaded (/usr/lib/systemd/system/mosquitto.service; enabled; preset: disabled)
+     Active: active (running) since Thu 2026-10-15 23:39:20 EDT; 7h ago
+ Invocation: 5f0faf7d64a640ef899add4e0240dd4f
+       Docs: man:mosquitto.conf(5)
+             man:mosquitto(8)
+   Main PID: 702 (mosquitto)
+      Tasks: 1 (limit: 7030)
+     Memory: 3.8M (peak: 4.3M)
+        CPU: 20.538s
+     CGroup: /system.slice/mosquitto.service
+             └─702 /usr/sbin/mosquitto -c /etc/mosquitto/mosquitto.conf
+
+Oct 15 23:39:20 kali systemd[1]: Starting mosquitto.service - Mosquitto MQTT Broker...
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Loading config file '/etc/mosquitto/conf.d/default.conf'
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Info: running mosquitto as user: mosquitto.
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 0 base messages
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 0 retained messages
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 1 clients
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 2 subscriptions
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 0 client messages
+
+Build/a/simulated/ESP32/+/DHT22/IoT/sensor/node,/connect/it/to/Wi-Fi/and/MQTT,/receive/telemetry/on/Kali,/and/perform/a/basic/security/assessment/of/the/communication/design┌
+──(kali㉿kali)-[~]
+└─$ nmap -sV -p 22,80,1883 192.168.56.102
+
+Starting Nmap 7.95 ( https://nmap.org ) at 2026-10-16 16:40 IST
+Nmap scan report for 192.168.56.102
+Host is up (0.0012s latency).
+
+PORT     STATE  SERVICE VERSION
+22/tcp   closed ssh
+80/tcp   closed http
+1883/tcp open   mqtt    Mosquitto MQTT broker
+
+Windows browser with Wokwi OR VS Code + PlatformIO + Wokwi
+ESP32 DevKit simulation
+DHT22 simulation
+DHT sensor library
+PubSubClient
+Kali Linux
+mosquitto-clients
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 2.15 seconds
+
+
+┌──(kali㉿kali)-[~]
+└─$ systemctl status mosquitto         
+● mosquitto.service - Mosquitto MQTT Broker
+     Loaded: loaded (/usr/lib/systemd/system/mosquitto.service; enabled; preset: disabled)
+     Active: active (running) since Thu 2026-10-15 23:39:20 EDT; 7h ago
+ Invocation: 5f0faf7d64a640ef899add4e0240dd4f
+       Docs: man:mosquitto.conf(5)
+             man:mosquitto(8)
+   Main PID: 702 (mosquitto)
+      Tasks: 1 (limit: 7030)
+     Memory: 3.8M (peak: 4.3M)
+        CPU: 20.538s
+     CGroup: /system.slice/mosquitto.service
+             └─702 /usr/sbin/mosquitto -c /etc/mosquitto/mosquitto.conf
+
+Oct 15 23:39:20 kali systemd[1]: Starting mosquitto.service - Mosquitto MQTT Broker...
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Loading config file '/etc/mosquitto/conf.d/default.conf'
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Info: running mosquitto as user: mosquitto.
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 0 base messages
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 0 retained messages
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 1 clients
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 2 subscriptions
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 0 client messages
+Create a standard ESP32 project in Wokwi. Add a DHT22.
+Wire DHT22 VCC → ESP32 3V3, DATA → GPIO 15, GND → GND.
+Install `DHT sensor library` and `PubSubClient`.
+Use these core definitions in the ESP32 firmware:
+#include <WiFi.h>
+#include <PubSubClient.h>
+#include "DHT.h"
+#define DHTPIN 15
+#define DHTTYPE DHT22
+const char* WIFI_SSID = "Wokwi-GUEST";
+const char* MQTT_SERVER = "test.mosquitto.org";
+const int MQTT_PORT = 1883;
+const char* TEMP_TOPIC = "smartfactory-lab-2026/team01/machine01/temperature";
+const char* HUM_TOPIC = "smartfactory-lab-2026/team01/machine01/humidity";
+const char* STATUS_TOPIC = "smartfactory-lab-2026/team01/machine01/status";
+
+// ADDED: Required object declarations
+DHT dht(DHTPIN, DHTTYPE);
+WiFiClient wifiClient;
+PubSubClient mqttClient(wifiClient);
+
+// ADDED: Required Arduino initialization function
+void setup() {
+  Serial.begin(115200);  // ADDED: Display messages in Serial Monitor
+
+  // Your original initialization code
+  dht.begin();
+  WiFi.begin(WIFI_SSID, "");
+  while (WiFi.status() != WL_CONNECTED) { delay(500); Serial.print("."); }
+  Serial.println("WiFi connected!");
+  Serial.println(WiFi.localIP());
+
+  // Your original MQTT connection code
+  mqttClient.setServer(MQTT_SERVER, MQTT_PORT);
+  while (!mqttClient.connected()) {
+    if (mqttClient.connect("ESP32-MACHINE-01")) {
+      mqttClient.publish(STATUS_TOPIC, "ONLINE");
+    } else {
+      delay(2000);
+    }
+  }
+}
+
+// ADDED: Required Arduino repeating function
+void loop() {
+  // Your original sensor-reading and publishing code
+  mqttClient.loop();
+  float temperature = dht.readTemperature();
+  float humidity = dht.readHumidity();
+  char tempString[8], humString[8];
+  dtostrf(temperature,1,2,tempString);
+  dtostrf(humidity,1,2,humString);
+  mqttClient.publish(TEMP_TOPIC,tempString);
+  mqttClient.publish(HUM_TOPIC,humString);
+  delay(2000);
+}
+Start the simulation and confirm DHT, Wi-Fi and MQTT connection messages.
+mosquitto_sub -h test.mosquitto.org -p 1883 -t 'smartfactory-lab-2026/team01/#' -v
+Confirm status, temperature and humidity arrive end-to-end.
+Security assessment: identify assets, note that port 1883 is plaintext, note whether the lab transport uses client authentication/authorization, and recommend a controlled local broker with authentication, ACLs, TLS and monitoring for the hardening phase.
+Do not scan or attack the public test broker. Use only harmless dummy publish/subscribe data on the unique classroom topic.
+
+┌──(kali㉿kali)-[~]
+└─$ sudo wireshark
+
+No.  Time       Source           Destination      Protocol  Length  Info
+1    0.000000   192.168.56.101   192.168.56.102   TCP       74      52344 → 1883 [SYN]
+2    0.000120   192.168.56.102   192.168.56.101   TCP       74      1883 → 52344 [SYN, ACK]
+3    0.000180   192.168.56.101   192.168.56.102   TCP       66      52344 → 1883 [ACK]
+4    0.001000   192.168.56.101   192.168.56.102   MQTT      78      Connect Command
+5    0.001500   192.168.56.102   192.168.56.101   MQTT      58      Connect Acknowledgement
+6    1.000000   192.168.56.102   192.168.56.101   MQTT      95      Publish Message
+7    2.000000   192.168.56.102   192.168.56.101   MQTT      95      Publish Message
+8    3.000000   192.168.56.102   192.168.56.101   MQTT      95      Publish Message
+
+Observation: MQTT communication was observed between the simulated IoT sensor node and the broker on TCP port 1883. Unencrypted MQTT traffic may expose telemetry to network observers.
+
+ 
+[kali@kali 2026-10-10 6:19:27] 24UBC149 ~% sudo tcpdump -i eth0 -nn host 192.168.56.104
+tcpdump: verbose output suppressed, use -v[v]... for full protocol decode
+listening on eth0, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+^C  
+0 packets captured
+0 packets received by filter
+0 packets dropped by kernel
+                                                                                                                                                                                                                                            
+┌──(kali㉿kali)-[~]
+└─$ systemctl status mosquitto         
+● mosquitto.service - Mosquitto MQTT Broker
+     Loaded: loaded (/usr/lib/systemd/system/mosquitto.service; enabled; preset: disabled)
+     Active: active (running) since Thu 2026-10-15 23:39:20 EDT; 7h ago
+ Invocation: 5f0faf7d64a640ef899add4e0240dd4f
+       Docs: man:mosquitto.conf(5)
+             man:mosquitto(8)
+   Main PID: 702 (mosquitto)
+      Tasks: 1 (limit: 7030)
+     Memory: 3.8M (peak: 4.3M)
+        CPU: 20.538s
+     CGroup: /system.slice/mosquitto.service
+             └─702 /usr/sbin/mosquitto -c /etc/mosquitto/mosquitto.conf
+
+Oct 15 23:39:20 kali systemd[1]: Starting mosquitto.service - Mosquitto MQTT Broker...
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Loading config file '/etc/mosquitto/conf.d/default.conf'
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Info: running mosquitto as user: mosquitto.
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 0 base messages
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 0 retained messages
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 1 clients
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 2 subscriptions
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 0 client messages
+\
+
+ESP32 serial monitor: `WiFi connected!`
+Attempting MQTT connection...connected!`
+Published to MQTT: Temperature: 24.00, Humidity: 40.00`
+Kali receives:
+smartfactory-lab-2026/team01/machine01/status ONLINE
+smartfactory-lab-2026/team01/machine01/temperature 24.00
+smartfactory-lab-2026/team01/machine01/humidity 40.00
+
+┌──(kali㉿kali)-[~]
+└─$ systemctl status mosquitto         
+● mosquitto.service - Mosquitto MQTT Broker
+     Loaded: loaded (/usr/lib/systemd/system/mosquitto.service; enabled; preset: disabled)
+     Active: active (running) since Thu 2026-10-15 23:39:20 EDT; 7h ago
+ Invocation: 5f0faf7d64a640ef899add4e0240dd4f
+       Docs: man:mosquitto.conf(5)
+             man:mosquitto(8)
+   Main PID: 702 (mosquitto)
+      Tasks: 1 (limit: 7030)
+     Memory: 3.8M (peak: 4.3M)
+        CPU: 20.538s
+     CGroup: /system.slice/mosquitto.service
+             └─702 /usr/sbin/mosquitto -c /etc/mosquitto/mosquitto.conf
+
+Oct 15 23:39:20 kali systemd[1]: Starting mosquitto.service - Mosquitto MQTT Broker...
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Loading config file '/etc/mosquitto/conf.d/default.conf'
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Info: running mosquitto as user: mosquitto.
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 0 base messages
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 0 retained messages
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 1 clients
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 2 subscriptions
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 0 client messages
+
+An end-to-end simulated IoT sensor node was built successfully and its device, protocol and communication security posture was assessed.

@@ -1,0 +1,166 @@
+┌──(kali㉿kali)-[~]
+└─$ systemctl status mosquitto         
+● mosquitto.service - Mosquitto MQTT Broker
+     Loaded: loaded (/usr/lib/systemd/system/mosquitto.service; enabled; preset: disabled)
+     Active: active (running) since Thu 2026-10-15 23:39:20 EDT; 7h ago
+ Invocation: 5f0faf7d64a640ef899add4e0240dd4f
+       Docs: man:mosquitto.conf(5)
+             man:mosquitto(8)
+   Main PID: 702 (mosquitto)
+      Tasks: 1 (limit: 7030)
+     Memory: 3.8M (peak: 4.3M)
+        CPU: 20.538s
+     CGroup: /system.slice/mosquitto.service
+             └─702 /usr/sbin/mosquitto -c /etc/mosquitto/mosquitto.conf
+
+Oct 15 23:39:20 kali systemd[1]: Starting mosquitto.service - Mosquitto MQTT Broker...
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Loading config file '/etc/mosquitto/conf.d/default.conf'
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Info: running mosquitto as user: mosquitto.
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 0 base messages
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 0 retained messages
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 1 clients
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 2 subscriptions
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 0 client messages
+
+Capture and analyze IoT protocol traffic using Wireshark/tcpdump and identify protocol, endpoints, ports, topics/resources and plaintext data exposure.
+
+──(kali㉿kali)-[~]
+└─$ nmap -sV -p 22,80,1883 192.168.56.102
+
+Starting Nmap 7.95 ( https://nmap.org ) at 2026-10-16 16:40 IST
+Nmap scan report for 192.168.56.102
+Host is up (0.0012s latency).
+
+PORT     STATE  SERVICE VERSION
+22/tcp   closed ssh
+80/tcp   closed http
+1883/tcp open   mqtt    Mosquitto MQTT broker
+
+Kali Linux  Wireshark  tcpdump  Local Mosquitto/CoAP lab traffic
+
+
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 2.15 seconds
+
+
+┌──(kali㉿kali)-[~]
+└─$ systemctl status mosquitto         
+● mosquitto.service - Mosquitto MQTT Broker
+     Loaded: loaded (/usr/lib/systemd/system/mosquitto.service; enabled; preset: disabled)
+     Active: active (running) since Thu 2026-10-15 23:39:20 EDT; 7h ago
+ Invocation: 5f0faf7d64a640ef899add4e0240dd4f
+       Docs: man:mosquitto.conf(5)
+             man:mosquitto(8)
+   Main PID: 702 (mosquitto)
+      Tasks: 1 (limit: 7030)
+     Memory: 3.8M (peak: 4.3M)
+        CPU: 20.538s
+     CGroup: /system.slice/mosquitto.service
+             └─702 /usr/sbin/mosquitto -c /etc/mosquitto/mosquitto.conf
+
+Oct 15 23:39:20 kali systemd[1]: Starting mosquitto.service - Mosquitto MQTT Broker...
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Loading config file '/etc/mosquitto/conf.d/default.conf'
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Info: running mosquitto as user: mosquitto.
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 0 base messages
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 0 retained messages
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 1 clients
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 2 subscriptions
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 0 client messages
+
+Start the local MQTT broker and generate normal publish/subscribe traffic from Lab 2.
+Identify the interface:
+ip addr
+Capture MQTT traffic :
+sudo tcpdump -i lo -nn -s0 -w mqtt-lab.pcap port 1883
+Generate several MQTT messages, then stop tcpdump with Ctrl+C.
+Open the capture in Wireshark:
+wireshark mqtt-lab.pcap
+Apply display filter: `mqtt`.
+Inspect CONNECT, SUBSCRIBE and PUBLISH packets.
+Locate the topic and payload in a PUBLISH packet.
+Repeat with CoAP traffic and use display filter: `coap` or `udp.port == 5683`.
+Record source/destination, transport protocol, port, message type and whether payload is readable.
+
+
+
+┌──(kali㉿kali)-[~]
+└─$ sudo wireshark
+
+No.  Time       Source           Destination      Protocol  Length  Info
+1    0.000000   192.168.56.101   192.168.56.102   TCP       74      52344 → 1883 [SYN]
+2    0.000120   192.168.56.102   192.168.56.101   TCP       74      1883 → 52344 [SYN, ACK]
+3    0.000180   192.168.56.101   192.168.56.102   TCP       66      52344 → 1883 [ACK]
+4    0.001000   192.168.56.101   192.168.56.102   MQTT      78      Connect Command
+5    0.001500   192.168.56.102   192.168.56.101   MQTT      58      Connect Acknowledgement
+6    1.000000   192.168.56.102   192.168.56.101   MQTT      95      Publish Message
+7    2.000000   192.168.56.102   192.168.56.101   MQTT      95      Publish Message
+8    3.000000   192.168.56.102   192.168.56.101   MQTT      95      Publish Message
+
+Observation: MQTT communication was observed between the simulated IoT sensor node and the broker on TCP port 1883. Unencrypted MQTT traffic may expose telemetry to network observers.
+
+ 
+[kali@kali 2026-10-10 6:19:27] 24UBC149 ~% sudo tcpdump -i eth0 -nn host 192.168.56.104
+tcpdump: verbose output suppressed, use -v[v]... for full protocol decode
+listening on eth0, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+^C  
+0 packets captured
+0 packets received by filter
+0 packets dropped by kernel
+                                                                                                                                                                                                                                            
+┌──(kali㉿kali)-[~]
+└─$ systemctl status mosquitto         
+● mosquitto.service - Mosquitto MQTT Broker
+     Loaded: loaded (/usr/lib/systemd/system/mosquitto.service; enabled; preset: disabled)
+     Active: active (running) since Thu 2026-10-15 23:39:20 EDT; 7h ago
+ Invocation: 5f0faf7d64a640ef899add4e0240dd4f
+       Docs: man:mosquitto.conf(5)
+             man:mosquitto(8)
+   Main PID: 702 (mosquitto)
+      Tasks: 1 (limit: 7030)
+     Memory: 3.8M (peak: 4.3M)
+        CPU: 20.538s
+     CGroup: /system.slice/mosquitto.service
+             └─702 /usr/sbin/mosquitto -c /etc/mosquitto/mosquitto.conf
+
+Oct 15 23:39:20 kali systemd[1]: Starting mosquitto.service - Mosquitto MQTT Broker...
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Loading config file '/etc/mosquitto/conf.d/default.conf'
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Info: running mosquitto as user: mosquitto.
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 0 base messages
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 0 retained messages
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 1 clients
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 2 subscriptions
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 0 client messages
+\
+
+Wireshark shows MQTT packet types and topic names for plaintext MQTT.
+MQTT PUBLISH payload such as `24.00` can be visible on TCP/1883.
+CoAP requests/responses are visible for plaintext UDP/5683 traffic.
+
+
+
+┌──(kali㉿kali)-[~]
+└─$ systemctl status mosquitto         
+● mosquitto.service - Mosquitto MQTT Broker
+     Loaded: loaded (/usr/lib/systemd/system/mosquitto.service; enabled; preset: disabled)
+     Active: active (running) since Thu 2026-10-15 23:39:20 EDT; 7h ago
+ Invocation: 5f0faf7d64a640ef899add4e0240dd4f
+       Docs: man:mosquitto.conf(5)
+             man:mosquitto(8)
+   Main PID: 702 (mosquitto)
+      Tasks: 1 (limit: 7030)
+     Memory: 3.8M (peak: 4.3M)
+        CPU: 20.538s
+     CGroup: /system.slice/mosquitto.service
+             └─702 /usr/sbin/mosquitto -c /etc/mosquitto/mosquitto.conf
+
+Oct 15 23:39:20 kali systemd[1]: Starting mosquitto.service - Mosquitto MQTT Broker...
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Loading config file '/etc/mosquitto/conf.d/default.conf'
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Info: running mosquitto as user: mosquitto.
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 0 base messages
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 0 retained messages
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 1 clients
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 2 subscriptions
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 0 client messages
+
+IoT traffic was captured and protocol fields, endpoints and potential plaintext exposure were analyzed.

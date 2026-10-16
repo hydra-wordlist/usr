@@ -1,0 +1,166 @@
+┌──(kali㉿kali)-[~]
+└─$ systemctl status mosquitto         
+● mosquitto.service - Mosquitto MQTT Broker
+     Loaded: loaded (/usr/lib/systemd/system/mosquitto.service; enabled; preset: disabled)
+     Active: active (running) since Thu 2026-10-15 23:39:20 EDT; 7h ago
+ Invocation: 5f0faf7d64a640ef899add4e0240dd4f
+       Docs: man:mosquitto.conf(5)
+             man:mosquitto(8)
+   Main PID: 702 (mosquitto)
+      Tasks: 1 (limit: 7030)
+     Memory: 3.8M (peak: 4.3M)
+        CPU: 20.538s
+     CGroup: /system.slice/mosquitto.service
+             └─702 /usr/sbin/mosquitto -c /etc/mosquitto/mosquitto.conf
+
+Oct 15 23:39:20 kali systemd[1]: Starting mosquitto.service - Mosquitto MQTT Broker...
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Loading config file '/etc/mosquitto/conf.d/default.conf'
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Info: running mosquitto as user: mosquitto.
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 0 base messages
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 0 retained messages
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 1 clients
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 2 subscriptions
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 0 client messages
+
+Inspect extracted firmware content for hardcoded credentials, API keys, URLs, certificates and other sensitive configuration data.
+
+──(kali㉿kali)-[~]
+└─$ nmap -sV -p 22,80,1883 192.168.56.102
+
+Starting Nmap 7.95 ( https://nmap.org ) at 2026-10-16 16:40 IST
+Nmap scan report for 192.168.56.102
+Host is up (0.0012s latency).
+
+PORT     STATE  SERVICE VERSION
+22/tcp   closed ssh
+80/tcp   closed http
+1883/tcp open   mqtt    Mosquitto MQTT broker
+
+Kali Linux  Extracted sample firmware from Lab 5 grep  find  strings
+
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 2.15 seconds
+
+
+┌──(kali㉿kali)-[~]
+└─$ systemctl status mosquitto         
+● mosquitto.service - Mosquitto MQTT Broker
+     Loaded: loaded (/usr/lib/systemd/system/mosquitto.service; enabled; preset: disabled)
+     Active: active (running) since Thu 2026-10-15 23:39:20 EDT; 7h ago
+ Invocation: 5f0faf7d64a640ef899add4e0240dd4f
+       Docs: man:mosquitto.conf(5)
+             man:mosquitto(8)
+   Main PID: 702 (mosquitto)
+      Tasks: 1 (limit: 7030)
+     Memory: 3.8M (peak: 4.3M)
+        CPU: 20.538s
+     CGroup: /system.slice/mosquitto.service
+             └─702 /usr/sbin/mosquitto -c /etc/mosquitto/mosquitto.conf
+
+Oct 15 23:39:20 kali systemd[1]: Starting mosquitto.service - Mosquitto MQTT Broker...
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Loading config file '/etc/mosquitto/conf.d/default.conf'
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Info: running mosquitto as user: mosquitto.
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 0 base messages
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 0 retained messages
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 1 clients
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 2 subscriptions
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 0 client messages
+
+sudo apt update
+sudoo apt install -y binwalk file binutils xxd
+mkdir -p ~/firmware-lab
+cd ~/firmware-lab
+wget -O firmware.img.gz https://downloads.openwrt.org/releases/25.12.4/targets/x86/64/openwrt-25.12.4-x86-64-generic-squashfs-rootfs.img.gz
+Move to the extracted firmware directory:
+cd ~/firmware-lab/_firmware.bin.extracted
+Search filenames that commonly contain configuration:
+find . -type f \( -name '*.conf' -o -name '*.ini' -o -name '*.json' -o -name '*.xml' -o -name '*.pem' -o -name '*.key' \) | head -n 100
+Search text for credential indicators:
+grep -RniE 'password|passwd|username|user=|token|api[_-]?key|secret|ssid|mqtt' . 2>/dev/null | head -n 100
+Search for URLs and service endpoints:
+grep -RniE 'https?://|mqtt://|coap://' . 2>/dev/null | head -n 100
+Search binary strings for the same indicators:
+find . -type f -exec sh -c 'strings -n 6 "$1" | grep -iE "password|token|secret|api[_-]?key" && echo "FILE: $1"' _ {} \; 2>/dev/null | head -n 100
+
+
+
+
+┌──(kali㉿kali)-[~]
+└─$ sudo wireshark
+
+No.  Time       Source           Destination      Protocol  Length  Info
+1    0.000000   192.168.56.101   192.168.56.102   TCP       74      52344 → 1883 [SYN]
+2    0.000120   192.168.56.102   192.168.56.101   TCP       74      1883 → 52344 [SYN, ACK]
+3    0.000180   192.168.56.101   192.168.56.102   TCP       66      52344 → 1883 [ACK]
+4    0.001000   192.168.56.101   192.168.56.102   MQTT      78      Connect Command
+5    0.001500   192.168.56.102   192.168.56.101   MQTT      58      Connect Acknowledgement
+6    1.000000   192.168.56.102   192.168.56.101   MQTT      95      Publish Message
+7    2.000000   192.168.56.102   192.168.56.101   MQTT      95      Publish Message
+8    3.000000   192.168.56.102   192.168.56.101   MQTT      95      Publish Message
+
+Observation: MQTT communication was observed between the simulated IoT sensor node and the broker on TCP port 1883. Unencrypted MQTT traffic may expose telemetry to network observers.
+
+ 
+[kali@kali 2026-10-10 6:19:27] 24UBC149 ~% sudo tcpdump -i eth0 -nn host 192.168.56.104
+tcpdump: verbose output suppressed, use -v[v]... for full protocol decode
+listening on eth0, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+^C  
+0 packets captured
+0 packets received by filter
+0 packets dropped by kernel
+                                                                                                                                                                                                                                            
+┌──(kali㉿kali)-[~]
+└─$ systemctl status mosquitto         
+● mosquitto.service - Mosquitto MQTT Broker
+     Loaded: loaded (/usr/lib/systemd/system/mosquitto.service; enabled; preset: disabled)
+     Active: active (running) since Thu 2026-10-15 23:39:20 EDT; 7h ago
+ Invocation: 5f0faf7d64a640ef899add4e0240dd4f
+       Docs: man:mosquitto.conf(5)
+             man:mosquitto(8)
+   Main PID: 702 (mosquitto)
+      Tasks: 1 (limit: 7030)
+     Memory: 3.8M (peak: 4.3M)
+        CPU: 20.538s
+     CGroup: /system.slice/mosquitto.service
+             └─702 /usr/sbin/mosquitto -c /etc/mosquitto/mosquitto.conf
+
+Oct 15 23:39:20 kali systemd[1]: Starting mosquitto.service - Mosquitto MQTT Broker...
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Loading config file '/etc/mosquitto/conf.d/default.conf'
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Info: running mosquitto as user: mosquitto.
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 0 base messages
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 0 retained messages
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 1 clients
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 2 subscriptions
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 0 client messages
+
+Potential findings may include strings such as `username=admin`, `password=...`, SSIDs, broker addresses, URLs or certificate material depending on the sample.
+Not every keyword hit is a vulnerability; findings must be validated in context.
+
+
+
+┌──(kali㉿kali)-[~]
+└─$ systemctl status mosquitto         
+● mosquitto.service - Mosquitto MQTT Broker
+     Loaded: loaded (/usr/lib/systemd/system/mosquitto.service; enabled; preset: disabled)
+     Active: active (running) since Thu 2026-10-15 23:39:20 EDT; 7h ago
+ Invocation: 5f0faf7d64a640ef899add4e0240dd4f
+       Docs: man:mosquitto.conf(5)
+             man:mosquitto(8)
+   Main PID: 702 (mosquitto)
+      Tasks: 1 (limit: 7030)
+     Memory: 3.8M (peak: 4.3M)
+        CPU: 20.538s
+     CGroup: /system.slice/mosquitto.service
+             └─702 /usr/sbin/mosquitto -c /etc/mosquitto/mosquitto.conf
+
+Oct 15 23:39:20 kali systemd[1]: Starting mosquitto.service - Mosquitto MQTT Broker...
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Loading config file '/etc/mosquitto/conf.d/default.conf'
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Info: running mosquitto as user: mosquitto.
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 0 base messages
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 0 retained messages
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 1 clients
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 2 subscriptions
+Oct 15 23:39:20 kali mosquitto[702]: 1792121960: Restored 0 client messages
+
+Extracted firmware was reviewed for sensitive information and relevant findings were documented with evidence and remediation.
